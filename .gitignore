@@ -1,0 +1,42 @@
+# Personal LLM - Git Ignore
+
+# 1. Private Data (CRITICAL)
+# Do not upload your database of memories or your actual voice recordings!
+local_memory/
+*.wav
+*.mp3
+*.m4a
+
+# 2. Python Virtual Environment
+venv/
+env/
+.env
+
+# 3. Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 4. OS / IDE Files
+.DS_Store
+.idea/
+.vscode/
+*.swp

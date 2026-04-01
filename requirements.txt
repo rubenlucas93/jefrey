@@ -1,0 +1,5 @@
+httpx
+openai-whisper
+openai-whisper
+chromadb
+pysqlite3-binary
