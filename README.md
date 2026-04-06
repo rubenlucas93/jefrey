@@ -9,7 +9,7 @@ A private, offline "second brain" that transcribes, cleans, and stores your conv
 3.  [x] **Cleaner Module**: Text processing, Spanish spellchecking, and formatting via local LLM.
 4.  [x] **Memory Module**: Vector storage and time-aware retrieval (`ChromaDB`).
 5.  [x] **Orchestrator**: The central system connecting all modules.
-6.  [ ] **Voice Biometrics**: Automated cross-clip speaker recognition using voice prints (embeddings) to consistently map voices to names (e.g., Rubén, Cristina).
+6.  [x] **Voice Biometrics**: Automated cross-clip speaker recognition using voice prints (embeddings) to consistently map voices to names (e.g., Rubén, Cristina).
 
 ## Tech Stack (Current)
 - **LLM**: [Ollama](https://ollama.com/) (Llama 3.2 3B)

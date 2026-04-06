@@ -11,6 +11,7 @@ sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 from brain.engine import Brain
 from ears.transcriber import Ears
 from ears.diarizer import Diarizer
+from ears.biometrics import VoiceBiometrics
 from cleaner.processor import Cleaner
 from memory.storage import Memory
 
@@ -19,7 +20,7 @@ class PersonalLLM:
         self.debug = debug
         
         # Load configuration
-        self.config = {"language": "es", "whisper_model": "base", "llm_model": "llama3.2:1b"}
+        self.config = {"language": "es", "whisper_model": "small", "llm_model": "llama3.2:latest"}
         if os.path.exists("config.json"):
             try:
                 with open("config.json", "r") as f:
@@ -28,8 +29,8 @@ class PersonalLLM:
                 print(f"Warning: Could not read config.json: {e}")
 
         self.language = self.config.get("language", "en")
-        llm_model = self.config.get("llm_model", "llama3.2:1b")
-        whisper_model = self.config.get("whisper_model", "base")
+        llm_model = self.config.get("llm_model", "llama3.2:latest")
+        whisper_model = self.config.get("whisper_model", "small")
         self.hf_token = self.config.get("hf_token", "")
 
         if self.debug:
@@ -40,6 +41,12 @@ class PersonalLLM:
         self.brain = Brain(model=llm_model)
         self.ears = Ears(model_size=whisper_model)
         self.diarizer = Diarizer(hf_token=self.hf_token, language=self.language)
+        
+        # Initialize Voice Biometrics if diarizer pipeline loaded successfully
+        self.biometrics = None
+        if self.diarizer.pipeline:
+            self.biometrics = VoiceBiometrics(self.diarizer.pipeline)
+            
         self.cleaner = Cleaner(brain_model=llm_model, language=self.language)
         self.memory = Memory()
         print("--- System Ready ---\n")
@@ -70,19 +77,38 @@ class PersonalLLM:
             mapping = {}
             for speaker in sorted(unique_speakers):
                 snippet = ""
+                start_time, end_time = 0.0, 0.0
+                
                 for line in tagged_text.split('\n'):
                     if line.startswith(f"[{speaker}]"):
-                        # Extract just the text part for the snippet
+                        # Extract timestamps like [Speaker 1] 0.0-5.0:
                         try:
+                            time_match = re.search(r'(\d+\.\d+)-(\d+\.\d+):', line)
+                            if time_match:
+                                start_time = float(time_match.group(1))
+                                end_time = float(time_match.group(2))
                             snippet = line.split(':', 1)[1].strip()
                         except:
                             snippet = line
                         break
                 
-                # Ask the user who this speaker is
-                user_input = input(f"¿Quién dijo esto? \"{snippet[:60]}...\" (Enter para dejar como '{speaker}'): ")
-                if user_input.strip():
-                    mapping[speaker] = user_input.strip()
+                # Biometric extraction & identification
+                speaker_emb = None
+                auto_identified = None
+                if self.biometrics and (end_time - start_time) >= 0.5:
+                    speaker_emb = self.biometrics.extract_embedding(audio_path, start_time, end_time)
+                    auto_identified = self.biometrics.identify_speaker(speaker_emb)
+                
+                if auto_identified:
+                    mapping[speaker] = auto_identified
+                else:
+                    # Ask the user who this speaker is
+                    user_input = input(f"¿Quién dijo esto? \"{snippet[:60]}...\" (Enter para dejar como '{speaker}'): ")
+                    if user_input.strip():
+                        mapping[speaker] = user_input.strip()
+                        # Enroll the new speaker to the DB
+                        if self.biometrics and speaker_emb is not None:
+                            self.biometrics.enroll_speaker(mapping[speaker], speaker_emb)
             
             # Replace tags with actual names
             for speaker, name in mapping.items():

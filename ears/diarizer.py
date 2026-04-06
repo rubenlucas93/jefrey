@@ -19,17 +19,26 @@ class Diarizer:
         if self.hf_token:
             print("Loading Pyannote Diarization Pipeline (this requires an internet connection for the first run)...")
             try:
+                # Set the environment variable for Hugging Face to automatically pick up the token
+                os.environ["HF_TOKEN"] = self.hf_token
+
                 # Monkeypatch huggingface_hub to handle old pyannote calling with use_auth_token
-                import huggingface_hub
-                original_download = huggingface_hub.hf_hub_download
+                import huggingface_hub.file_download
+                original_download = huggingface_hub.file_download.hf_hub_download
                 
                 def patched_download(*args, **kwargs):
                     if "use_auth_token" in kwargs:
                         kwargs["token"] = kwargs.pop("use_auth_token")
                     return original_download(*args, **kwargs)
                 
+                huggingface_hub.file_download.hf_hub_download = patched_download
                 huggingface_hub.hf_hub_download = patched_download
                 
+                import pyannote.audio.core.pipeline
+                pyannote.audio.core.pipeline.hf_hub_download = patched_download
+                import pyannote.audio.core.model
+                pyannote.audio.core.model.hf_hub_download = patched_download
+
                 # Monkeypatch np.NaN for older pyannote versions running on Numpy 2.0+
                 import numpy as np
                 if not hasattr(np, "NaN"):
@@ -45,9 +54,6 @@ class Diarizer:
                         def __init__(self, *args, **kwargs):
                             self.metadata = None
                     pyannote_io.AudioDecoder = DummyAudioDecoder
-
-                # Set the environment variable for Hugging Face to automatically pick up the token
-                os.environ["HF_TOKEN"] = self.hf_token
 
                 self.pipeline = Pipeline.from_pretrained(
                     "pyannote/speaker-diarization-3.1"
