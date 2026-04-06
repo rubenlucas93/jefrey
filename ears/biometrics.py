@@ -65,7 +65,7 @@ class VoiceBiometrics:
         self._save_db()
         print(f"[Biometrics] Voice print saved for '{name}'.")
 
-    def identify_speaker(self, embedding, threshold=0.65):
+    def identify_speaker(self, embedding, threshold=0.55):
         """Compares the embedding to the DB. Returns the name if a match is found."""
         if embedding is None or not self.embeddings:
             return None
@@ -86,5 +86,7 @@ class VoiceBiometrics:
         if best_score >= threshold:
             print(f"[Biometrics] Auto-identified '{best_name}' (Confidence: {best_score:.2f})")
             return best_name
-            
-        return None
+        else:
+            if best_name:
+                print(f"[Biometrics] Best match was '{best_name}' at {best_score:.2f}, but below threshold ({threshold}).")
+            return None

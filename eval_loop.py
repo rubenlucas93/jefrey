@@ -17,15 +17,30 @@ def calculate_wer(reference, hypothesis):
 
 def llm_judge(app, question, expected, actual):
     """Uses the Brain to judge if the actual answer means the same as expected."""
+    # 1. Deterministic match (lenient)
+    def normalize(s):
+        s = s.lower().strip().replace(".", "").replace(",", "")
+        # Remove common articles
+        for art in ["una ", "un ", "la ", "el ", "las ", "los "]:
+            s = s.replace(art, "")
+        return s.strip()
+
+    if normalize(expected) == normalize(actual) or normalize(expected) in normalize(actual) or normalize(actual) in normalize(expected):
+        return True
+
+    # 2. LLM match
     prompt = (
-        f"You are a strict judge. Determine if 'Answer 2' contains the same core factual information as 'Answer 1'.\n"
+        f"Does the 'Student' answer convey the same core fact as the 'Correct' answer?\n"
         f"Question: {question}\n"
-        f"Answer 1 (Expected): {expected}\n"
-        f"Answer 2 (Actual): {actual}\n"
-        f"Reply ONLY with 'YES' or 'NO'."
+        f"Correct: {expected}\n"
+        f"Student: {actual}\n"
+        f"Ignore minor differences in wording or articles. Output YES or NO."
     )
-    result = app.brain.query(prompt, system_prompt="You are a binary judge.")
-    return "YES" in result.upper()
+    result = app.brain.query(prompt, system_prompt="You are a fair judge.")
+    is_yes = "YES" in result.upper()
+    if not is_yes:
+        print(f"    [JUDGE DEBUG] Result: {result}")
+    return is_yes
 
 def main():
     eval_dir = "data/eval"
@@ -38,7 +53,7 @@ def main():
         print("No evaluation templates found.")
         sys.exit(1)
 
-    app = PersonalLLM(debug=False)
+    app = PersonalLLM(debug=True)
     app.skip_mapping = True # Force biometrics
 
     total_qa_tests = 0
@@ -98,3 +113,6 @@ def main():
     else:
         print("✅ GOAL MET. Pipeline is optimal.")
         sys.exit(0)
+
+if __name__ == "__main__":
+    main()

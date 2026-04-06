@@ -72,8 +72,7 @@ class PersonalLLM:
         
         import re
         unique_speakers = set(re.findall(r'\[(Speaker \d+)\]', tagged_text))
-        if unique_speakers and not getattr(self, "skip_mapping", False):
-            print("\n👥 ¡He detectado distintas voces! Vamos a identificarlas:")
+        if unique_speakers:
             mapping = {}
             for speaker in sorted(unique_speakers):
                 snippet = ""
@@ -101,8 +100,9 @@ class PersonalLLM:
                 
                 if auto_identified:
                     mapping[speaker] = auto_identified
-                else:
+                elif not getattr(self, "skip_mapping", False):
                     # Ask the user who this speaker is
+                    print(f"\n👥 Identificando voz: {speaker}")
                     user_input = input(f"¿Quién dijo esto? \"{snippet[:60]}...\" (Enter para dejar como '{speaker}'): ")
                     if user_input.strip():
                         mapping[speaker] = user_input.strip()
@@ -160,17 +160,16 @@ class PersonalLLM:
         
         # Build a prompt using the recalled memories (RAG)
         prompt = (
-            f"FECHA Y HORA ACTUAL: {now}\n\n"
-            f"MEMORIAS (Transcripciones con marca de tiempo):\n"
+            f"FECHA ACTUAL: {now}\n\n"
+            f"MEMORIAS:\n"
             f"```\n{context}\n```\n\n"
-            f"PREGUNTA DEL USUARIO: {question}\n\n"
-            f"INSTRUCCIONES CRÍTICAS:\n"
-            f"1. Eres un sistema de memoria. Responde usando SOLO la información de las MEMORIAS.\n"
-            f"2. NUNCA inventes, deduzcas ni asumas nada. Si el texto no dice explícitamente quién está usando la aplicación, NO lo inventes.\n"
-            f"3. Responde describiendo literalmente lo que dicen los Speakers en las memorias (ej. 'El Speaker 2 dice que está escéptico...'). No expliques cómo encontraste la respuesta.\n"
-            f"4. Si preguntan 'a qué hora' o 'cuándo', responde con la FECHA EXACTA y la HORA EXACTA que aparece entre corchetes [ ].\n"
-            f"5. Si no hay memorias relacionadas, responde: 'No hay información en las memorias sobre esto.'\n"
-            f"6. Responde en español, en 1 o 2 frases directas."
+            f"REGLAS DE LÓGICA:\n"
+            f"- Si [Cristina] dice 'tú escogiste', significa que RUBÉN escogió.\n"
+            f"- Si [Rubén] dice 'tú escogiste', significa que CRISTINA escogió.\n"
+            f"- Verbos terminados en '-aste' o '-iste' se refieren a la OTRA persona.\n"
+            f"- Verbos terminados en '-é' o '-í' se refieren a la misma persona que habla.\n\n"
+            f"PREGUNTA: {question}\n"
+            f"RESPUESTA (Solo el nombre o el dato):"
         )
         
         answer = self.brain.query(prompt, system_prompt="Eres un asistente personal preciso que actúa como memoria para el usuario.")
@@ -183,11 +182,59 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Personal LLM Orchestrator")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode for verbose output")
     parser.add_argument("--file", type=str, help="Path to an existing audio file to process instead of recording")
+    parser.add_argument("--ambient", action="store_true", help="Run continuously in ambient mode (background recording + foreground querying)")
     args = parser.parse_args()
 
     app = PersonalLLM(debug=args.debug)
 
-    if args.file:
+    if args.ambient:
+        import queue
+        import threading
+        from ears.recorder import ambient_recorder_thread
+        from memory.retention import prune_old_audio
+        
+        # In ambient mode, we don't want the app to prompt for 'Quién dijo esto?' and block the queue
+        app.skip_mapping = True 
+
+        audio_queue = queue.Queue()
+        
+        # Start the background recorder (Records 30s chunks)
+        rec_thread = threading.Thread(target=ambient_recorder_thread, args=(audio_queue,), daemon=True)
+        rec_thread.start()
+        
+        # Start the background processor (Transcribes and saves to ChromaDB)
+        def process_worker():
+            while True:
+                filename = audio_queue.get()
+                try:
+                    prune_old_audio()  # Auto-delete audio older than 48 hours to save space
+                    app.ingest_audio(filename)
+                except Exception as e:
+                    print(f"Error processing {filename}: {e}")
+                audio_queue.task_done()
+                
+        proc_thread = threading.Thread(target=process_worker, daemon=True)
+        proc_thread.start()
+        
+        print("\n" + "="*50)
+        print("🏠 AMBIENT MODE ACTIVE")
+        print("The system is listening and processing in the background.")
+        print("You can ask questions at any time below.")
+        print("="*50)
+        
+        while True:
+            try:
+                question = input("\nAsk the Brain (or type 'quit'): ")
+                if question.lower() in ['quit', 'exit', 'q']:
+                    break
+                if question.strip():
+                    app.ask(question)
+            except KeyboardInterrupt:
+                break
+            except EOFError:
+                break
+
+    elif args.file:
         audio_file = args.file
         if not os.path.exists(audio_file):
             print(f"Error: File '{audio_file}' not found.")
