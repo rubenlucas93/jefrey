@@ -13,3 +13,4 @@
 - [2026-03-31] Step 3 complete: Cleaner Module implemented using the local Ollama brain.
 - [2026-03-31] Step 4 complete: Memory Module (ChromaDB) successfully tested with semantic search.
 - [2026-03-31] Step 5 complete: Orchestrator created, tying Audio -> Whisper -> Llama -> ChromaDB -> RAG pipeline completely offline. Proof of concept successful!
+- [2026-04-06] Step 6 complete: Added Speaker Diarization module (contextual LLM-based) and --debug mode for easier testing.

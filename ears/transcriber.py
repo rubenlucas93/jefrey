@@ -16,19 +16,29 @@ class Ears:
         self.model = whisper.load_model(model_size)
         print("Model loaded successfully.")
 
-    def transcribe(self, audio_path):
+    def transcribe(self, audio_path, language=None):
         """
         Transcribes the given audio file.
+        Returns a dictionary with 'text' and 'segments'.
         """
         if not os.path.exists(audio_path):
-            return f"Error: File {audio_path} not found."
+            return {"text": f"Error: File {audio_path} not found.", "segments": []}
             
         print(f"Transcribing {audio_path}...")
         try:
-            result = self.model.transcribe(audio_path)
-            return result["text"].strip()
+            # verbose=None to avoid printing to console, task='transcribe' is default
+            # pass the language if specified
+            kwargs = {}
+            if language:
+                kwargs["language"] = language
+                
+            result = self.model.transcribe(audio_path, **kwargs)
+            return {
+                "text": result["text"].strip(),
+                "segments": result["segments"]
+            }
         except Exception as e:
-            return f"Transcription error: {str(e)}"
+            return {"text": f"Transcription error: {str(e)}", "segments": []}
 
 if __name__ == "__main__":
     # Create a dummy audio file (1 second of silence/sine wave) to test the pipeline

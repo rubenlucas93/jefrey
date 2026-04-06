@@ -1,5 +1,10 @@
+chromadb
 httpx
 openai-whisper
-openai-whisper
-chromadb
+pyannote.audio
 pysqlite3-binary
+sounddevice==0.5.5
+soundfile==0.13.1
+torch
+torchaudio
+pytest
