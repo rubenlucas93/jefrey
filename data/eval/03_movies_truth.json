@@ -1,0 +1,16 @@
+{
+  "transcript": [
+    "[Rubén]: Esta noche toca ver la película de ciencia ficción que propuse.",
+    "[Cristina]: Siempre eliges tú, la semana pasada también escogiste Batman. Esta vez decido yo, vamos a ver la de comedia francesa."
+  ],
+  "qa_pairs": [
+    {
+      "question": "¿Quién eligió la película la semana pasada?",
+      "expected_answer": "Rubén"
+    },
+    {
+      "question": "¿Qué tipo de película quiere ver Cristina hoy?",
+      "expected_answer": "Una comedia francesa"
+    }
+  ]
+}

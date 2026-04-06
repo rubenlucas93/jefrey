@@ -1,0 +1,16 @@
+{
+  "transcript": [
+    "[Rubén]: Oye, ¿has visto las llaves del coche?",
+    "[Cristina]: Las dejé encima del mueble de la entrada, junto a tu cartera."
+  ],
+  "qa_pairs": [
+    {
+      "question": "¿Dónde están las llaves del coche?",
+      "expected_answer": "Encima del mueble de la entrada"
+    },
+    {
+      "question": "¿Quién dejó las llaves allí?",
+      "expected_answer": "Cristina"
+    }
+  ]
+}

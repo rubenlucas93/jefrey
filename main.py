@@ -175,6 +175,7 @@ class PersonalLLM:
         
         answer = self.brain.query(prompt, system_prompt="Eres un asistente personal preciso que actúa como memoria para el usuario.")
         print(f"\n🤖 Answer:\n{answer}\n")
+        return answer
 
 if __name__ == "__main__":
     from ears.recorder import record_audio

@@ -1,0 +1,16 @@
+{
+  "transcript": [
+    "[Cristina]: Ayer por la noche pasé la aspiradora y limpié toda la cocina.",
+    "[Rubén]: Vale, pues yo me encargo de fregar los baños este fin de semana."
+  ],
+  "qa_pairs": [
+    {
+      "question": "¿Quién limpió la cocina?",
+      "expected_answer": "Cristina"
+    },
+    {
+      "question": "¿Qué va a hacer Rubén el fin de semana?",
+      "expected_answer": "Fregar los baños"
+    }
+  ]
+}
